@@ -182,3 +182,12 @@ class WxComponentApi(object):
         }
         rsp = self._post(pre_auth_code_url, parameters)
         return rsp
+
+    def get_authorization_page(self, pre_auth_code, redirect_uri):
+        """
+        获取第三方平台授权页地址
+        :return: 第三方平台授权页地址
+        """
+        authorization_page = "https://mp.weixin.qq.com/cgi-bin/componentloginpage?component_appid=%s&pre_auth_code=%s&redirect_uri=%s" % \
+                             (self.component_appid, pre_auth_code, redirect_uri)
+        return authorization_page
