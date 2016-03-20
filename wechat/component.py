@@ -1,8 +1,11 @@
 # coding=utf-8
+import json
+import requests
 
 import xmltodict
 from hashlib import sha1
 from .crypt import WXBizMsgCrypt
+from .models import APIError
 
 
 class WxComponentApplication(object):
@@ -118,3 +121,51 @@ class WxComponentApplication(object):
         AuthorizationCodeExpiredTime	授权码过期时间
         """
         pass
+
+
+class WxComponentApi(object):
+
+    """
+    微信公众号第三方平台API
+    """
+
+    COMPONENT_APP_ID = None
+    COMPONENT_APP_SECRET = None
+
+    API_PREFIX = 'https://api.weixin.qq.com/cgi-bin/'
+
+    def __init__(self, component_appid=None, component_appsecret=None, api_entry=None):
+        """
+        由于这是公众号第三方平台的API,
+        """
+        self.component_appid = component_appid or self.COMPONENT_APP_ID
+        self.component_appsecret = component_appsecret or self.COMPONENT_APP_SECRET
+        self.api_entry = api_entry or self.API_PREFIX
+
+    def _process_response(self, rsp):
+        if rsp.status_code != 200:
+            return None, APIError(rsp.status_code, 'http error')
+        try:
+            content = rsp.json()
+        except:
+            return None, APIError(99999, 'invalid rsp')
+        if 'errcode' in content and content['errcode'] != 0:
+            return None, APIError(content['errcode'], content['errmsg'])
+        return content, None
+
+    def _post(self, path, data, ctype='json'):
+        headers = {'Content-type': 'application/json'}
+        path = self.api_entry + path
+        if ctype == 'json':
+            data = json.dumps(data, ensure_ascii=False).encode('utf-8')
+        rsp = requests.post(path, data=data, headers=headers, verify=False)
+        return self._process_response(rsp)
+
+    def get_component_access_token(self, verify_ticket):
+        parameters = {
+            "component_appid": self.component_appid,
+            "component_appsecret": self.component_appsecret,
+            'component_verify_ticket': verify_ticket
+        }
+        rsp = self._post("component/api_component_token", parameters)
+        return rsp
