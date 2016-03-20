@@ -1,15 +1,15 @@
 # coding=utf-8
 import json
-import requests
-
-import xmltodict
 from hashlib import sha1
+
+import requests
+import xmltodict
+
 from .crypt import WXBizMsgCrypt
 from .models import APIError
 
 
 class WxComponentApplication(object):
-
     SECRET_TOKEN = None
     APP_ID = None
     ENCODING_AES_KEY = None
@@ -22,7 +22,7 @@ class WxComponentApplication(object):
 
         sign_ele = [self.token, timestamp, nonce]
         sign_ele.sort()
-        if(signature == sha1(''.join(sign_ele)).hexdigest()):
+        if (signature == sha1(''.join(sign_ele)).hexdigest()):
             return True, echostr
         else:
             return None
@@ -124,7 +124,6 @@ class WxComponentApplication(object):
 
 
 class WxComponentApi(object):
-
     """
     微信公众号第三方平台API
     """
@@ -162,6 +161,9 @@ class WxComponentApi(object):
         return self._process_response(rsp)
 
     def get_component_access_token(self, verify_ticket):
+        """
+        获取第三方平台component_access_token
+        """
         parameters = {
             "component_appid": self.component_appid,
             "component_appsecret": self.component_appsecret,
@@ -173,8 +175,6 @@ class WxComponentApi(object):
     def get_pre_auth_code(self, component_access_token):
         """
         获取预授权码
-        :param component_access_token: 第三方平台令牌
-        :return: 预授权码
         """
         pre_auth_code_url = "component/api_create_preauthcode?component_access_token=%s" % component_access_token
         parameters = {
@@ -186,8 +186,19 @@ class WxComponentApi(object):
     def get_authorization_page(self, pre_auth_code, redirect_uri):
         """
         获取第三方平台授权页地址
-        :return: 第三方平台授权页地址
         """
         authorization_page = "https://mp.weixin.qq.com/cgi-bin/componentloginpage?component_appid=%s&pre_auth_code=%s&redirect_uri=%s" % \
                              (self.component_appid, pre_auth_code, redirect_uri)
         return authorization_page
+
+    def get_authorization_info(self, auth_code, component_access_token):
+        """
+        获取授权公众号的授权信息
+        """
+        url = "component/api_query_auth?component_access_token=%s" % component_access_token
+        parameters = {
+            "component_appid": self.component_appid,
+            "authorization_code": auth_code
+        }
+        rsp = self._post(url, parameters)
+        return rsp
