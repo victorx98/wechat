@@ -169,3 +169,16 @@ class WxComponentApi(object):
         }
         rsp = self._post("component/api_component_token", parameters)
         return rsp
+
+    def get_pre_auth_code(self, component_access_token):
+        """
+        获取预授权码
+        :param component_access_token: 第三方平台令牌
+        :return: 预授权码
+        """
+        pre_auth_code_url = "component/api_create_preauthcode?component_access_token=%s" % component_access_token
+        parameters = {
+            'component_appid': self.component_appid
+        }
+        rsp = self._post(pre_auth_code_url, parameters)
+        return rsp
