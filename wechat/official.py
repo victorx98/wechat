@@ -1,17 +1,20 @@
 # encoding=utf-8
 
-from hashlib import sha1
+from functools import wraps
 import requests
 import json
 import tempfile
 import shutil
 import os
-from .crypt import WXBizMsgCrypt
+from .crypt import WXBizMsgCrypt, SHA1
+import sys
+from datetime import datetime, timedelta
 
 from .models import WxRequest, WxResponse
 from .models import WxMusic, WxArticle, WxImage, WxVoice, WxVideo, WxLink
 from .models import WxTextResponse, WxImageResponse, WxVoiceResponse,\
     WxVideoResponse, WxMusicResponse, WxNewsResponse, APIError, WxEmptyResponse
+
 
 __all__ = ['WxRequest', 'WxResponse', 'WxMusic', 'WxArticle', 'WxImage',
            'WxVoice', 'WxVideo', 'WxLink', 'WxTextResponse',
@@ -28,15 +31,29 @@ class WxApplication(object):
     APP_ID = None
     ENCODING_AES_KEY = None
 
+    def __init__(self):
+        self.event_handlers = {
+            'subscribe': self.on_subscribe,
+            'unsubscribe': self.on_unsubscribe,
+            'SCAN': self.on_scan,
+            'LOCATION': self.on_location_update,
+            'CLICK': self.on_click,
+            'VIEW': self.on_view,
+            'scancode_push': self.on_scancode_push,
+            'scancode_waitmsg': self.on_scancode_waitmsg,
+            'pic_sysphoto': self.on_pic_sysphoto,
+            'pic_photo_or_album': self.on_pic_photo_or_album,
+            'pic_weixin': self.on_pic_weixin,
+            'location_select': self.on_location_select
+        }
+
     def is_valid_params(self, params):
         timestamp = params.get('timestamp', '')
         nonce = params.get('nonce', '')
         signature = params.get('signature', '')
         echostr = params.get('echostr', '')
 
-        sign_ele = [self.token, timestamp, nonce]
-        sign_ele.sort()
-        if(signature == sha1(''.join(sign_ele)).hexdigest()):
+        if (signature == SHA1.getSignature(self.token, timestamp, nonce)):
             return True, echostr
         else:
             return None
@@ -62,8 +79,7 @@ class WxApplication(object):
             timestamp = params.get('timestamp', '')
             nonce = params.get('nonce', '')
             if encrypt_type == 'aes':
-                cpt = WXBizMsgCrypt(self.token,
-                                    self.aes_key, self.app_id)
+                cpt = WXBizMsgCrypt(self.token, self.aes_key, self.app_id)
                 err, xml = cpt.DecryptMsg(xml, msg_signature, timestamp, nonce)
                 if err:
                     return 'decrypt message error, code : %s' % err
@@ -108,27 +124,13 @@ class WxApplication(object):
     def on_location(self, loc):
         return WxTextResponse(self.UNSUPPORT_TXT, loc)
 
-    def event_map(self):
-        if getattr(self, 'event_handlers', None):
-            return self.event_handlers
-        return {
-            'subscribe': self.on_subscribe,
-            'unsubscribe': self.on_unsubscribe,
-            'SCAN': self.on_scan,
-            'LOCATION': self.on_location_update,
-            'CLICK': self.on_click,
-            'VIEW': self.on_view,
-            'scancode_push': self.on_scancode_push,
-            'scancode_waitmsg': self.on_scancode_waitmsg,
-            'pic_sysphoto': self.on_pic_sysphoto,
-            'pic_photo_or_album': self.on_pic_photo_or_album,
-            'pic_weixin': self.on_pic_weixin,
-            'location_select': self.on_location_select,
-        }
-
     def on_event(self, event):
-        func = self.event_map().get(event.Event, None)
+        func = self.event_handlers.get(event.Event, self.on_other_event)
         return func(event)
+
+    def on_other_event(self, event):
+        # Unhandled event
+        return WxEmptyResponse()
 
     def on_subscribe(self, sub):
         return WxTextResponse(self.WELCOME_TXT, sub)
@@ -186,29 +188,32 @@ class WxApplication(object):
         pass
 
 
+def retry_token(fn):
+    def wrapper(self, *args, **kwargs):
+        content, err = fn(self, *args, **kwargs)
+        if not content and err and err.code in [40001, 40014, 42001]:
+            self.token_manager.refresh_token(self.get_access_token)
+            return fn(self, *args, **kwargs)
+        else:
+            return content, err
+
+    return wrapper
+
+
 class WxBaseApi(object):
 
     API_PREFIX = 'https://api.weixin.qq.com/cgi-bin/'
+    VERIFY = True
 
-    def __init__(self, appid, appsecret, api_entry=None):
+    def __init__(self, appid, appsecret, token_manager, api_entry=None):
         self.appid = appid
         self.appsecret = appsecret
-        self._access_token = None
+        self.token_manager = token_manager
         self.api_entry = api_entry or self.API_PREFIX
 
     @property
     def access_token(self):
-        if not self._access_token:
-            token, err = self.get_access_token()
-            if not err:
-                self._access_token = token['access_token']
-                return self._access_token
-            else:
-                return None
-        return self._access_token
-
-    def set_access_token(self, token):
-        self._access_token = token
+        return self.token_manager.get_token(self.get_access_token)
 
     def _process_response(self, rsp):
         if rsp.status_code != 200:
@@ -221,14 +226,16 @@ class WxBaseApi(object):
             return None, APIError(content['errcode'], content['errmsg'])
         return content, None
 
+    @retry_token
     def _get(self, path, params=None):
         if not params:
             params = {}
         params['access_token'] = self.access_token
         rsp = requests.get(self.api_entry + path, params=params,
-                           verify=False)
+                           verify=WxBaseApi.VERIFY)
         return self._process_response(rsp)
 
+    @retry_token
     def _post(self, path, data, ctype='json'):
         headers = {'Content-type': 'application/json'}
         path = self.api_entry + path
@@ -238,7 +245,8 @@ class WxBaseApi(object):
             path += '?access_token=' + self.access_token
         if ctype == 'json':
             data = json.dumps(data, ensure_ascii=False).encode('utf-8')
-        rsp = requests.post(path, data=data, headers=headers, verify=False)
+        rsp = requests.post(path, data=data, headers=headers,
+                            verify=WxBaseApi.VERIFY)
         return self._process_response(rsp)
 
     def upload_media(self, mtype, file_path=None, file_content=None,
@@ -261,7 +269,7 @@ class WxBaseApi(object):
             f.close()
         media = open(tmp_path, 'rb')
         rsp = requests.post(path, files={'media': media},
-                            verify=False)
+                            verify=WxBaseApi.VERIFY)
         media.close()
         os.remove(tmp_path)
         return self._process_response(rsp)
@@ -270,7 +278,7 @@ class WxBaseApi(object):
         rsp = requests.get(self.api_entry + url,
                            params={'media_id': media_id,
                                    'access_token': self.access_token},
-                           verify=False)
+                           verify=WxBaseApi.VERIFY)
         if rsp.status_code == 200:
             save_file = open(to_path, 'wb')
             save_file.write(rsp.content)
@@ -309,7 +317,7 @@ class WxApi(WxBaseApi):
         if kwargs:
             params.update(kwargs)
         rsp = requests.get(url or self.api_entry + 'token', params=params,
-                           verify=False)
+                           verify=WxBaseApi.VERIFY)
         return self._process_response(rsp)
 
     def user_info(self, user_id, lang='zh_CN'):
@@ -382,6 +390,11 @@ class WxApi(WxBaseApi):
         return self._post('message/custom/send',
                           {'touser': to_user, 'msgtype': 'news',
                            'news': {'articles': news}})
+
+    def send_template(self, to_user, template_id, url, data):
+        return self._post('message/template/send',
+                          {'touser': to_user, 'template_id': template_id,
+                           'url': url, 'data': data})
 
     def create_group(self, name):
         return self._post('groups/create',

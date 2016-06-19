@@ -1,4 +1,4 @@
-#encoding=utf-8
+# encoding=utf-8
 
 import requests
 import time
@@ -9,6 +9,8 @@ from .models import WxTextResponse, WxImageResponse, WxVoiceResponse,\
     WxVideoResponse, WxNewsResponse, APIError, WxEmptyResponse
 from .official import WxApplication as BaseApplication, WxBaseApi
 from .crypt import WXBizMsgCrypt
+import sys
+
 
 __all__ = ['WxRequest', 'WxResponse', 'WxArticle', 'WxImage',
            'WxVoice', 'WxVideo', 'WxLink', 'WxTextResponse',
@@ -60,7 +62,7 @@ class WxApplication(BaseApplication):
         self.pre_process()
         rsp = func(self.req)
         self.post_process()
-        result = rsp.as_xml().encode('UTF-8') 
+        result = rsp.as_xml().encode('UTF-8')
 
         if not result:
             return ''
@@ -114,7 +116,7 @@ class WxApi(WxBaseApi):
         params.update(kwargs)
         rsp = requests.get(url or self.api_entry + 'cgi-bin/gettoken',
                            params=params,
-                           verify=False)
+                           verify=WxBaseApi.VERIFY)
         return self._process_response(rsp)
 
     def departments(self):
@@ -335,16 +337,13 @@ class WxApi(WxBaseApi):
     # OAuth2
     def authorize_url(self, appid, redirect_uri, response_type='code',
                       scope='snsapi_base', state=None):
-        # 变态的微信实现，参数的顺序也有讲究。。艹！这个实现太恶心，太恶心！
-        url = 'https://open.weixin.qq.com/connect/oauth2/authorize?'
-        rd_uri = urllib.urlencode({'redirect_uri': redirect_uri})
-        url += 'appid=%s&' % appid
-        url += rd_uri
-        url += '&response_type=' + response_type
-        url += '&scope=' + scope
+        params = dict(appid=appid, redirect_uri=redirect_uri, response_type=response_type, scope=scope)
         if state:
-            url += '&state=' + state
-        return url + '#wechat_redirect'
+            params['state'] = state
+        url = '?'.join(
+            ['https://open.weixin.qq.com/connect/oauth2/authorize', urllib.urlencode(sorted(params.items()))])
+        url = '#'.join([url, 'wechat_redirect'])
+        return url
 
     def get_user_info(self, agentid, code):
         return self._get('cgi-bin/user/getuserinfo',

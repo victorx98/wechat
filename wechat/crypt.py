@@ -1,4 +1,4 @@
-#encoding=utf-8
+# encoding=utf-8
 
 import base64
 import string
@@ -8,10 +8,21 @@ import time
 import struct
 from Crypto.Cipher import AES
 import xml.etree.cElementTree as ET
-import sys
 import socket
-reload(sys)
-sys.setdefaultencoding('utf-8')
+import sys
+
+if sys.version < "3":
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+    PY3 = False
+
+
+    def str2bytes(s):
+        return s
+else:
+    def str2bytes(s):
+        return s.encode("utf-8") if isinstance(s, str) else s
+
 
 WXBizMsgCrypt_OK = 0
 WXBizMsgCrypt_ValidateSignature_Error = -40001
@@ -63,6 +74,13 @@ class SHA1:
         except Exception:
             return WXBizMsgCrypt_ComputeSignature_Error, None
 
+    @staticmethod
+    def getSignature(token, timestamp, nonce):
+        sign_ele = [token, timestamp, nonce]
+        sign_ele.sort()
+        s = "".join(sign_ele)
+        return hashlib.sha1(str2bytes(s)).hexdigest()
+
 
 class XMLParse:
     """提供提取消息格式中的密文及生成回复消息格式的接口"""
@@ -82,7 +100,7 @@ class XMLParse:
             xml_tree = ET.fromstring(xmltext)
             encrypt = xml_tree.find("Encrypt")
             touser_name = xml_tree.find("ToUserName")
-            if touser_name != None:
+            if touser_name is not None:
                 touser_name = touser_name.text
             return WXBizMsgCrypt_OK, encrypt.text, touser_name
         except Exception:
@@ -139,7 +157,7 @@ class Prpcrypt(object):
     """提供接收和推送给公众平台消息的加解密接口"""
 
     def __init__(self, key):
-        #self.key = base64.b64decode(key+"=")
+        # self.key = base64.b64decode(key+"=")
         self.key = key
         # 设置加解密模式为AES的CBC模式
         self.mode = AES.MODE_CBC
@@ -178,8 +196,8 @@ class Prpcrypt(object):
         try:
             pad = ord(plain_text[-1])
             # 去掉补位字符串
-            #pkcs7 = PKCS7Encoder()
-            #plain_text = pkcs7.encode(plain_text)
+            # pkcs7 = PKCS7Encoder()
+            # plain_text = pkcs7.encode(plain_text)
             # 去除16位随机字符串
             content = plain_text[16:-pad]
             xml_len = socket.ntohl(struct.unpack("I", content[:4])[0])
@@ -202,17 +220,21 @@ class Prpcrypt(object):
 
 class WXBizMsgCrypt(object):
     def __init__(self, sToken, sEncodingAESKey, sCorpId):
+        (sToken, sEncodingAESKey, sCorpId) = \
+            map(str2bytes, (sToken, sEncodingAESKey, sCorpId))
         try:
             self.key = base64.b64decode(sEncodingAESKey+"=")
             assert len(self.key) == 32
         except:
             throw_exception("[error]: EncodingAESKey unvalid !",
                             FormatException)
-           #return WXBizMsgCrypt_IllegalAesKey)
+            # return WXBizMsgCrypt_IllegalAesKey)
         self.m_sToken = sToken
         self.m_sCorpid = sCorpId
 
     def VerifyURL(self, sMsgSignature, sTimeStamp, sNonce, sEchoStr):
+        (sMsgSignature, sTimeStamp, sNonce, sEchoStr) = \
+            map(str2bytes, (sMsgSignature, sTimeStamp, sNonce, sEchoStr))
         sha1 = SHA1()
         ret, signature = sha1.getSHA1(self.m_sToken,
                                       sTimeStamp, sNonce, sEchoStr)
@@ -225,6 +247,8 @@ class WXBizMsgCrypt(object):
         return ret, sReplyEchoStr
 
     def EncryptMsg(self, sReplyMsg, sNonce, timestamp=None):
+        (sReplyMsg, sNonce, timestamp) = \
+            map(str2bytes, (sReplyMsg, sNonce, timestamp))
         pc = Prpcrypt(self.key)
         ret, encrypt = pc.encrypt(sReplyMsg, self.m_sCorpid)
         if ret != 0:
@@ -241,6 +265,8 @@ class WXBizMsgCrypt(object):
         return ret, xmlParse.generate(encrypt, signature, timestamp, sNonce)
 
     def DecryptMsg(self, sPostData, sMsgSignature, sTimeStamp, sNonce):
+        (sPostData, sMsgSignature, sTimeStamp, sNonce) = \
+            map(str2bytes, (sPostData, sMsgSignature, sTimeStamp, sNonce))
         xmlParse = XMLParse()
         ret, encrypt, touser_name = xmlParse.extract(sPostData)
         if ret != 0:
