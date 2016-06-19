@@ -1,3 +1,14 @@
+# 变更说明
+
+作者：[@raptorz](https://github.com/raptorz)
+
+* 支持python3
+* 符合PEP8
+* 增加token管理，包括js_ticket
+* 增加模板消息发送功能
+* 可选是否验证https证书（原版为不验证）
+* event_map改为可扩展
+
 # 微信公众号Python-SDK
 
 作者: [@jeff_kit](http://twitter.com/jeff_kit)
@@ -193,7 +204,7 @@ on_xxx函数需要返回一个WxResponse的子类实例。WxResponse的子类及
 	from flask import Flask
 	app = Flask(__name__)
 	
-	@app.route('/wechat')
+	@app.route('/wechat', methods=['GET', 'POST'])
 	def wechat():
 		app = WxApp()
 		return app.process(request.args, request.data)
