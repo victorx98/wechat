@@ -1,6 +1,7 @@
 # encoding=utf-8
 
 from xml.dom import minidom
+import xmltodict
 import collections
 import time
 import sys
@@ -38,15 +39,30 @@ class WxRequest(object):
     def __init__(self, xml=None):
         if not xml:
             return
-        doc = minidom.parseString(xml)
-        params = [ele for ele in doc.childNodes[0].childNodes
-                  if isinstance(ele, minidom.Element)]
-        for param in params:
-            if param.childNodes:
-                text = param.childNodes[0]
-                self.__dict__.update({param.tagName: text.data})
-            else:
-                self.__dict__.update({param.tagName: ''})
+        # doc = minidom.parseString(xml)
+        # params = [ele for ele in doc.childNodes[0].childNodes
+        #           if isinstance(ele, minidom.Element)]
+        # for param in params:
+        #     if param.childNodes:
+        #         text = param.childNodes[0]
+        #         self.__dict__.update({param.tagName: text.data})
+        #     else:
+        #         self.__dict__.update({param.tagName: ''})
+        doc = xmltodict.parse(xml)
+        params = doc.get('xml', None)
+        if not None:
+            for param in params:
+                text = params[param]
+                if isinstance(text, dict):
+                    for k in text:
+                        v = text[k]
+                        if isinstance(v, dict):
+                            # 可以修改成一个递归，以便解析更多层
+                            pass
+                        else:
+                            self.__dict__.update({k: v})
+                else:
+                    self.__dict__.update({param: text})
 
 
 class WxResponse(object):
