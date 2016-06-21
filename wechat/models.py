@@ -48,19 +48,17 @@ class WxRequest(object):
         #         self.__dict__.update({param.tagName: text.data})
         #     else:
         #         self.__dict__.update({param.tagName: ''})
-        doc = xmltodict.parse(xml)
-        params = doc.get('xml', None)
-        if not None:
+        doc = xmltodict.parse(xml).get('xml',None)
+        self._params(doc)
+
+    def _params(self, params):
+        if params is None:
+            pass
+        else:
             for param in params:
                 text = params[param]
                 if isinstance(text, dict):
-                    for k in text:
-                        v = text[k]
-                        if isinstance(v, dict):
-                            # 可以修改成一个递归，以便解析更多层
-                            pass
-                        else:
-                            self.__dict__.update({k: v})
+                    self._params(text)
                 else:
                     self.__dict__.update({param: text})
 
