@@ -166,7 +166,7 @@ class WxNewsResponse(WxResponse):
 
     def __init__(self, articles, request):
         super(WxNewsResponse, self).__init__(request)
-        if isinstance(articles, list) or isinstance(articles, tuple):
+        if isinstance(articles, list):
             self.articles = articles
         else:
             self.articles = [articles]
