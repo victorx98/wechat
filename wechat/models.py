@@ -12,6 +12,8 @@ if sys.version > "3":
 
 
 def kv2element(key, value, doc):
+    if value is None:
+        return None
     ele = doc.createElement(key)
     if isinstance(value, str) or isinstance(value, unicode):
         data = doc.createCDATASection(value)
@@ -27,7 +29,8 @@ def fields2elements(tupleObj, enclose_tag=None, doc=None):
         xml = doc.createElement(enclose_tag)
         for key in tupleObj._fields:
             ele = kv2element(key, getattr(tupleObj, key), doc)
-            xml.appendChild(ele)
+            if ele is not None:
+                xml.appendChild(ele)
         return xml
     else:
         return [kv2element(key, getattr(tupleObj, key), doc)
@@ -37,24 +40,12 @@ def fields2elements(tupleObj, enclose_tag=None, doc=None):
 class WxRequest(object):
 
     def __init__(self, xml=None):
-        if not xml:
-            return
-        # doc = minidom.parseString(xml)
-        # params = [ele for ele in doc.childNodes[0].childNodes
-        #           if isinstance(ele, minidom.Element)]
-        # for param in params:
-        #     if param.childNodes:
-        #         text = param.childNodes[0]
-        #         self.__dict__.update({param.tagName: text.data})
-        #     else:
-        #         self.__dict__.update({param.tagName: ''})
-        doc = xmltodict.parse(xml).get('xml',None)
-        self._params(doc)
+        if xml is not None:
+            doc = xmltodict.parse(xml).get('xml', None)
+            self._params(doc)
 
     def _params(self, params):
-        if params is None:
-            pass
-        else:
+        if params is not None:
             for param in params:
                 text = params[param]
                 if isinstance(text, dict):
