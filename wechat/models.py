@@ -42,16 +42,15 @@ class WxRequest(object):
     def __init__(self, xml=None):
         if xml is not None:
             doc = xmltodict.parse(xml).get('xml', None)
-            self._params(doc)
+            self._parse(doc)
 
-    def _params(self, params):
-        if params is not None:
-            for param in params:
-                text = params[param]
-                if isinstance(text, dict):
-                    self._params(text)
+        def _parse(self, dicts):
+        if dicts is not None:
+            for key, value in dicts.items():
+                if isinstance(value, dict):
+                    self._parse(value)
                 else:
-                    self.__dict__.update({param: text})
+                    self.__dict__.update({key: value})
 
 
 class WxResponse(object):
