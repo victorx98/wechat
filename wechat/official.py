@@ -12,9 +12,8 @@ from datetime import datetime, timedelta
 
 from .models import WxRequest, WxResponse
 from .models import WxMusic, WxArticle, WxImage, WxVoice, WxVideo, WxLink
-from .models import WxTextResponse, WxImageResponse, WxVoiceResponse,\
+from .models import WxTextResponse, WxImageResponse, WxVoiceResponse, \
     WxVideoResponse, WxMusicResponse, WxNewsResponse, APIError, WxEmptyResponse
-
 
 __all__ = ['WxRequest', 'WxResponse', 'WxMusic', 'WxArticle', 'WxImage',
            'WxVoice', 'WxVideo', 'WxLink', 'WxTextResponse',
@@ -24,7 +23,6 @@ __all__ = ['WxRequest', 'WxResponse', 'WxMusic', 'WxArticle', 'WxImage',
 
 
 class WxApplication(object):
-
     UNSUPPORT_TXT = u'暂不支持此类型消息'
     WELCOME_TXT = u'你好！感谢您的关注！'
     SECRET_TOKEN = None
@@ -201,7 +199,6 @@ def retry_token(fn):
 
 
 class WxBaseApi(object):
-
     API_PREFIX = 'https://api.weixin.qq.com/cgi-bin/'
     VERIFY = True
 
@@ -252,7 +249,7 @@ class WxBaseApi(object):
     def upload_media(self, mtype, file_path=None, file_content=None,
                      url='media/upload', suffies=None):
         path = self.api_entry + url + '?access_token=' \
-            + self.access_token + '&type=' + mtype
+               + self.access_token + '&type=' + mtype
         suffies = suffies or {'image': '.jpg', 'voice': '.mp3',
                               'video': 'mp4', 'thumb': 'jpg'}
         suffix = None
@@ -274,7 +271,7 @@ class WxBaseApi(object):
         os.remove(tmp_path)
         return self._process_response(rsp)
 
-    def download_media(self,  media_id, to_path, url='media/get'):
+    def download_media(self, media_id, to_path, url='media/get'):
         rsp = requests.get(self.api_entry + url,
                            params={'media_id': media_id,
                                    'access_token': self.access_token},
@@ -310,7 +307,6 @@ class WxBaseApi(object):
 
 
 class WxApi(WxBaseApi):
-
     def get_access_token(self, url=None, **kwargs):
         params = {'grant_type': 'client_credential', 'appid': self.appid,
                   'secret': self.appsecret}
@@ -425,12 +421,12 @@ class WxApi(WxBaseApi):
 
     def create_tag(self, name):
         return self._post('tags/create',
-                          {'tag': {"name":name}})
+                          {'tag': {"name": name}})
 
     def tags(self):
         return self._get('tags/get')
 
-    def update_tag(self, tag_id,name):
+    def update_tag(self, tag_id, name):
         return self._post('tags/update',
                           {'tag': {'id': tag_id, 'name': name}})
 
@@ -445,7 +441,7 @@ class WxApi(WxBaseApi):
         return self._post('tags/members/batchtagging',
                           {'openid_list': users_list, 'tagid': tag_id})
 
-    def batch_untagging(self, tag_id,users_list):
+    def batch_untagging(self, tag_id, users_list):
         return self._post('tags/members/batchuntagging',
                           {'openid_list': users_list, 'tagid': tag_id})
 

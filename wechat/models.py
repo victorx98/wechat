@@ -38,23 +38,22 @@ def fields2elements(tupleObj, enclose_tag=None, doc=None):
 
 
 class WxRequest(object):
-
     def __init__(self, xml=None):
         if xml is not None:
             doc = xmltodict.parse(xml).get('xml', None)
             self._parse(doc)
 
         def _parse(self, dicts):
-        if dicts is not None:
-            for key, value in dicts.items():
-                if isinstance(value, dict):
-                    self._parse(value)
-                else:
-                    self.__dict__.update({key: value})
+
+            if dicts is not None:
+                for key, value in dicts.items():
+                    if isinstance(value, dict):
+                        self._parse(value)
+                    else:
+                        self.__dict__.update({key: value})
 
 
 class WxResponse(object):
-
     def __init__(self, request):
         self.CreateTime = long(time.time())
         self.ToUserName = request.FromUserName
@@ -93,7 +92,6 @@ WxLink = collections.namedtuple('WxLink', 'Title Description Url')
 
 
 class WxEmptyResponse(WxResponse):
-
     def __init__(self):
         pass
 
@@ -102,7 +100,6 @@ class WxEmptyResponse(WxResponse):
 
 
 class WxTextResponse(WxResponse):
-
     MsgType = 'text'
 
     def __init__(self, text, request):
@@ -114,7 +111,6 @@ class WxTextResponse(WxResponse):
 
 
 class WxCompoundResponse(WxResponse):
-
     MsgType = ''
     Tag = ''
 
@@ -127,31 +123,26 @@ class WxCompoundResponse(WxResponse):
 
 
 class WxImageResponse(WxCompoundResponse):
-
     MsgType = 'image'
     Tag = 'Image'
 
 
 class WxVoiceResponse(WxCompoundResponse):
-
     MsgType = 'voice'
     Tag = 'Voice'
 
 
 class WxVideoResponse(WxCompoundResponse):
-
     MsgType = 'video'
     Tag = 'Video'
 
 
 class WxMusicResponse(WxResponse):
-
     MsgType = 'music'
     Tag = 'Music'
 
 
 class WxNewsResponse(WxResponse):
-
     MsgType = 'news'
 
     def __init__(self, articles, request):
@@ -170,7 +161,6 @@ class WxNewsResponse(WxResponse):
 
 
 class APIError(object):
-
     def __init__(self, code, msg):
         self.code = code
         self.message = msg

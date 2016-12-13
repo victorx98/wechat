@@ -5,12 +5,11 @@ import time
 import urllib
 from .models import WxRequest, WxResponse
 from .models import WxArticle, WxImage, WxVoice, WxVideo, WxLink
-from .models import WxTextResponse, WxImageResponse, WxVoiceResponse,\
+from .models import WxTextResponse, WxImageResponse, WxVoiceResponse, \
     WxVideoResponse, WxNewsResponse, APIError, WxEmptyResponse
 from .official import WxApplication as BaseApplication, WxBaseApi
 from .crypt import WXBizMsgCrypt
 import sys
-
 
 __all__ = ['WxRequest', 'WxResponse', 'WxArticle', 'WxImage',
            'WxVoice', 'WxVideo', 'WxLink', 'WxTextResponse',
@@ -20,7 +19,6 @@ __all__ = ['WxRequest', 'WxResponse', 'WxArticle', 'WxImage',
 
 
 class WxApplication(BaseApplication):
-
     UNSUPPORT_TXT = u'暂不支持此类型消息'
     WELCOME_TXT = u'你好！感谢您的关注！'
     SECRET_TOKEN = None
@@ -89,7 +87,6 @@ def simplify_send_parmas(params):
 
 
 class WxApi(WxBaseApi):
-
     API_PREFIX = 'https://qyapi.weixin.qq.com/'
 
     def __init__(self, appid, appsecret, api_entry=None):
@@ -179,7 +176,7 @@ class WxApi(WxBaseApi):
             "email": email,
             "weixinid": weixinid,
             "extattr": extattr,
-            }
+        }
         return self._post('cgi-bin/user/create', params)
 
     def update_user(self, userid, name, department=None, position=None,
@@ -196,7 +193,7 @@ class WxApi(WxBaseApi):
             "email": email,
             "weixinid": weixinid,
             "extattr": extattr,
-            }
+        }
         return self._post('cgi-bin/user/update', params)
 
     def delete_user(self, userid):
@@ -212,7 +209,7 @@ class WxApi(WxBaseApi):
             mtype, file_path=file_path, file_content=file_content,
             url='cgi-bin/media/upload',
             suffies={'image': '.jpg', 'voice': '.mp3',
-                              'video': '.mp4', 'file': ''})
+                     'video': '.mp4', 'file': ''})
 
     def download_media(self, media_id, to_path):
         return super(WxApi, self).download_media(
@@ -337,11 +334,13 @@ class WxApi(WxBaseApi):
     # OAuth2
     def authorize_url(self, appid, redirect_uri, response_type='code',
                       scope='snsapi_base', state=None):
-        params = dict(appid=appid, redirect_uri=redirect_uri, response_type=response_type, scope=scope)
+        params = dict(appid=appid, redirect_uri=redirect_uri, response_type=response_type,
+                      scope=scope)
         if state:
             params['state'] = state
         url = '?'.join(
-            ['https://open.weixin.qq.com/connect/oauth2/authorize', urllib.urlencode(sorted(params.items()))])
+            ['https://open.weixin.qq.com/connect/oauth2/authorize',
+             urllib.urlencode(sorted(params.items()))])
         url = '#'.join([url, 'wechat_redirect'])
         return url
 

@@ -23,7 +23,6 @@ else:
     def str2bytes(s):
         return s.encode("utf-8") if isinstance(s, str) else s
 
-
 WXBizMsgCrypt_OK = 0
 WXBizMsgCrypt_ValidateSignature_Error = -40001
 WXBizMsgCrypt_ParseXml_Error = -40002
@@ -36,7 +35,6 @@ WXBizMsgCrypt_IllegalBuffer = -40008
 WXBizMsgCrypt_EncodeBase64_Error = -40009
 WXBizMsgCrypt_DecodeBase64_Error = -40010
 WXBizMsgCrypt_GenReturnXml_Error = -40011
-
 
 """
 关于Crypto.Cipher模块，ImportError: No module named 'Crypto'解决方案
@@ -119,7 +117,7 @@ class XMLParse:
             'msg_signaturet': signature,
             'timestamp': timestamp,
             'nonce': nonce,
-            }
+        }
         resp_xml = self.AES_TEXT_RESPONSE_TEMPLATE % resp_dict
         return resp_xml
 
@@ -201,8 +199,8 @@ class Prpcrypt(object):
             # 去除16位随机字符串
             content = plain_text[16:-pad]
             xml_len = socket.ntohl(struct.unpack("I", content[:4])[0])
-            xml_content = content[4:xml_len+4]
-            from_appid = content[xml_len+4:]
+            xml_content = content[4:xml_len + 4]
+            from_appid = content[xml_len + 4:]
         except Exception:
             return WXBizMsgCrypt_IllegalBuffer, None
         if from_appid != appid:
@@ -223,7 +221,7 @@ class WXBizMsgCrypt(object):
         (sToken, sEncodingAESKey, sCorpId) = \
             map(str2bytes, (sToken, sEncodingAESKey, sCorpId))
         try:
-            self.key = base64.b64decode(sEncodingAESKey+"=")
+            self.key = base64.b64decode(sEncodingAESKey + "=")
             assert len(self.key) == 32
         except:
             throw_exception("[error]: EncodingAESKey unvalid !",
