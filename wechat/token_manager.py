@@ -18,7 +18,7 @@ class TokenManager(object):
                 sleep(5)
                 if self.token:
                     break
-        elif not token or expires and expires < time():
+        elif not token or expires and float(expires) < time():
             self.expires = None
             self.refresh_token(fn_get_access_token)
         return self.token
