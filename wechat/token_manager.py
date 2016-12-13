@@ -14,7 +14,7 @@ class TokenManager(object):
         token = self.token
         expires = self.expires
         if not token and not expires:
-            for i in xrang(12):
+            for i in range(12):
                 sleep(5)
                 if self.token:
                     break
@@ -55,10 +55,10 @@ class LocalTokenManager(TokenManager):
 
 
 class RedisTokenManager(TokenManager):
-    def __init__(self, postfix="", **kwargs):
+    def __init__(self, postfix="", *args, **kwargs):
         self.token_name = "_".join(["access_token", postfix])
         self.expires_name = "_".join(["access_token_expires", postfix])
-        self.redis = redis.Redis(**kwargs)
+        self.redis = redis.Redis(*args, **kwargs)
         if not self.expires:
             self.expires = time()
 
