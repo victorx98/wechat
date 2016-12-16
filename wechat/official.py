@@ -95,7 +95,7 @@ class WxApplication(object):
 
         req = WxRequest(xml)
         self.wxreq = req
-        func = self.handlers.get(req.MsgType, None)
+        func = self.handler_map().get(req.MsgType, None)
         if not func:
             return WxTextResponse(self.UNSUPPORT_TXT, req)
         self.pre_process()
