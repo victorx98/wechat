@@ -1,4 +1,5 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
+"""component for wechat"""
 import json
 from hashlib import sha1
 
@@ -10,11 +11,18 @@ from .models import APIError
 
 
 class WxComponentApplication(object):
+    """Component"""
     SECRET_TOKEN = None
     APP_ID = None
     ENCODING_AES_KEY = None
 
+    def __init__(self):
+        """init"""
+        # 外部继承是可扩展,此处自定义的handle
+        self.handlers = None
+
     def is_valid_params(self, params):
+        """valid params"""
         timestamp = params.get('timestamp', '')
         nonce = params.get('nonce', '')
         signature = params.get('signature', '')
@@ -28,6 +36,7 @@ class WxComponentApplication(object):
             return None
 
     def process(self, params, xml=None, token=None, app_id=None, aes_key=None):
+        """Process"""
         self.token = token if token else self.SECRET_TOKEN
         self.app_id = app_id if app_id else self.APP_ID
         self.aes_key = aes_key if aes_key else self.ENCODING_AES_KEY
@@ -49,7 +58,7 @@ class WxComponentApplication(object):
             nonce = params.get('nonce', '')
             if encrypt_type == 'aes':
                 cpt = WXBizMsgCrypt(self.token, self.aes_key, self.app_id)
-                err, xml = cpt.DecryptMsg(xml, msg_signature, timestamp, nonce)
+                err, xml = cpt.decrypt_msg(xml, msg_signature, timestamp, nonce)
                 if err:
                     return 'decrypt message error, code : %s' % err
             else:
@@ -61,12 +70,11 @@ class WxComponentApplication(object):
         func = self.handler_map().get(info_type, None)
         if not func:
             return "success"
-
         func(event)
-
         return "success"
 
     def handler_map(self):
+        """handler map"""
         if getattr(self, 'handlers', None):
             return self.handlers
         return {
@@ -142,6 +150,7 @@ class WxComponentApi(object):
         self.api_entry = api_entry or self.API_PREFIX
 
     def _process_response(self, rsp):
+        """process response"""
         if rsp.status_code != 200:
             return None, APIError(rsp.status_code, 'http error')
         try:
@@ -153,6 +162,7 @@ class WxComponentApi(object):
         return content, None
 
     def _post(self, path, data, ctype='json'):
+        """post"""
         headers = {'Content-type': 'application/json'}
         path = self.api_entry + path
         if ctype == 'json':

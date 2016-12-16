@@ -1,19 +1,18 @@
 #!/usr/bin/env python
-
+'''App setup config'''
 from setuptools import setup, find_packages
 from wechat import VERSION
 
-url = "https://github.com/jeffkit/wechat"
+URL = "https://github.com/jeffkit/wechat"
 
-long_description = "Wechat Python SDK"
+LONG_DESCRIPTION = "Wechat Python SDK"
 
 setup(name="wechat",
       version=VERSION,
-      description=long_description,
+      description=LONG_DESCRIPTION,
       maintainer="jeff kit",
       maintainer_email="bbmyth@gmail.com",
-      url=url,
-      long_description=long_description,
+      url=URL,
+      long_description=LONG_DESCRIPTION,
       install_requires=['requests'],
-      packages=find_packages('.'),
-      )
+      packages=find_packages('.'), )

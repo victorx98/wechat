@@ -1,14 +1,14 @@
-# encoding=utf-8
-
+# -*- coding: utf-8 -*-
+"""official"""
 from functools import wraps
-import requests
 import json
 import tempfile
 import shutil
 import os
-from .crypt import WXBizMsgCrypt, SHA1
 import sys
 from datetime import datetime, timedelta
+import requests
+from .crypt import WXBizMsgCrypt, SHA1
 
 from .models import WxRequest, WxResponse
 from .models import WxMusic, WxArticle, WxImage, WxVoice, WxVideo, WxLink
@@ -23,6 +23,7 @@ __all__ = ['WxRequest', 'WxResponse', 'WxMusic', 'WxArticle', 'WxImage',
 
 
 class WxApplication(object):
+    """WxApplication"""
     UNSUPPORT_TXT = u'暂不支持此类型消息'
     WELCOME_TXT = u'你好！感谢您的关注！'
     SECRET_TOKEN = None
@@ -30,6 +31,9 @@ class WxApplication(object):
     ENCODING_AES_KEY = None
 
     def __init__(self):
+        """init"""
+        # 外部继承是可扩展,此处自定义的handle
+        self.handlers = None
         self.event_handlers = {
             'subscribe': self.on_subscribe,
             'unsubscribe': self.on_unsubscribe,
@@ -46,20 +50,25 @@ class WxApplication(object):
         }
 
     def is_valid_params(self, params):
+        """valid params"""
         timestamp = params.get('timestamp', '')
         nonce = params.get('nonce', '')
         signature = params.get('signature', '')
         echostr = params.get('echostr', '')
 
-        if (signature == SHA1.getSignature(self.token, timestamp, nonce)):
+        if (signature == SHA1.get_signature(self.token, timestamp, nonce)):
             return True, echostr
         else:
             return None
 
     def process(self, params, xml=None, token=None, app_id=None, aes_key=None):
+        """process"""
         self.token = token if token else self.SECRET_TOKEN
         self.app_id = app_id if app_id else self.APP_ID
         self.aes_key = aes_key if aes_key else self.ENCODING_AES_KEY
+        self.cpt = None
+        self.nonce = None
+
         assert self.token is not None
 
         ret = self.is_valid_params(params)
@@ -75,10 +84,10 @@ class WxApplication(object):
         if encrypt_type != '' and encrypt_type != 'raw':
             msg_signature = params.get('msg_signature', '')
             timestamp = params.get('timestamp', '')
-            nonce = params.get('nonce', '')
+            self.nonce = params.get('nonce', '')
             if encrypt_type == 'aes':
-                cpt = WXBizMsgCrypt(self.token, self.aes_key, self.app_id)
-                err, xml = cpt.DecryptMsg(xml, msg_signature, timestamp, nonce)
+                self.cpt = WXBizMsgCrypt(self.token, self.aes_key, self.app_id)
+                err, xml = self.cpt.decrypt_msg(xml, msg_signature, timestamp, self.nonce)
                 if err:
                     return 'decrypt message error, code : %s' % err
             else:
@@ -86,7 +95,7 @@ class WxApplication(object):
 
         req = WxRequest(xml)
         self.wxreq = req
-        func = self.handler_map().get(req.MsgType, None)
+        func = self.handlers.get(req.MsgType, None)
         if not func:
             return WxTextResponse(self.UNSUPPORT_TXT, req)
         self.pre_process()
@@ -97,7 +106,7 @@ class WxApplication(object):
         # 加密消息
         if encrypt_type != '' and encrypt_type != 'raw':
             if encrypt_type == 'aes':
-                err, result = cpt.EncryptMsg(result, nonce)
+                err, result = self.cpt.encrypt_msg(result, self.nonce)
                 if err:
                     return 'encrypt message error , code %s' % err
             else:
@@ -105,68 +114,89 @@ class WxApplication(object):
         return result
 
     def on_text(self, text):
+        """text"""
         return WxTextResponse(self.UNSUPPORT_TXT, text)
 
     def on_link(self, link):
+        """link"""
         return WxTextResponse(self.UNSUPPORT_TXT, link)
 
     def on_image(self, image):
+        """image"""
         return WxTextResponse(self.UNSUPPORT_TXT, image)
 
     def on_voice(self, voice):
+        """voice"""
         return WxTextResponse(self.UNSUPPORT_TXT, voice)
 
     def on_video(self, video):
+        """video"""
         return WxTextResponse(self.UNSUPPORT_TXT, video)
 
     def on_location(self, loc):
+        """location"""
         return WxTextResponse(self.UNSUPPORT_TXT, loc)
 
     def on_event(self, event):
+        """event"""
         func = self.event_handlers.get(event.Event, self.on_other_event)
         return func(event)
 
     def on_other_event(self, event):
+        """other_event"""
         # Unhandled event
         return WxEmptyResponse()
 
     def on_subscribe(self, sub):
+        """subscribe"""
         return WxTextResponse(self.WELCOME_TXT, sub)
 
     def on_unsubscribe(self, unsub):
+        """unsubscribe"""
         return WxEmptyResponse()
 
     def on_click(self, click):
+        """click"""
         return WxEmptyResponse()
 
     def on_scan(self, scan):
+        """scan"""
         return WxEmptyResponse()
 
     def on_location_update(self, location):
+        """location_update"""
         return WxEmptyResponse()
 
     def on_view(self, view):
+        """"""
         return WxEmptyResponse()
 
     def on_scancode_push(self, event):
+        """scancode_push"""
         return WxEmptyResponse()
 
     def on_scancode_waitmsg(self, event):
+        """scancode_waitmsg"""
         return WxEmptyResponse()
 
     def on_pic_sysphoto(self, event):
+        """pic_sysphoto"""
         return WxEmptyResponse()
 
     def on_pic_photo_or_album(self, event):
+        """pic_photo_or_album"""
         return WxEmptyResponse()
 
     def on_pic_weixin(self, event):
+        """pic_weixin"""
         return WxEmptyResponse()
 
     def on_location_select(self, event):
+        """location_select"""
         return WxEmptyResponse()
 
     def handler_map(self):
+        """handler map"""
         if getattr(self, 'handlers', None):
             return self.handlers
         return {
@@ -180,14 +210,19 @@ class WxApplication(object):
         }
 
     def pre_process(self):
+        """pre_process"""
         pass
 
     def post_process(self, rsp=None):
+        """post_process"""
         pass
 
 
 def retry_token(fn):
+    """retry_token"""
+
     def wrapper(self, *args, **kwargs):
+        """装饰器"""
         content, err = fn(self, *args, **kwargs)
         if not content and err and err.code in [40001, 40014, 42001]:
             self.token_manager.refresh_token(self.get_access_token)
@@ -199,6 +234,7 @@ def retry_token(fn):
 
 
 class WxBaseApi(object):
+    """WxBaseApi"""
     API_PREFIX = 'https://api.weixin.qq.com/cgi-bin/'
     VERIFY = True
 
@@ -210,9 +246,11 @@ class WxBaseApi(object):
 
     @property
     def access_token(self):
+        """access token"""
         return self.token_manager.get_token(self.get_access_token)
 
     def _process_response(self, rsp):
+        """process response"""
         if rsp.status_code != 200:
             return None, APIError(rsp.status_code, 'http error')
         try:
@@ -225,6 +263,7 @@ class WxBaseApi(object):
 
     @retry_token
     def _get(self, path, params=None):
+        """_get"""
         if not params:
             params = {}
         params['access_token'] = self.access_token
@@ -234,6 +273,7 @@ class WxBaseApi(object):
 
     @retry_token
     def _post(self, path, data, ctype='json'):
+        """_post"""
         headers = {'Content-type': 'application/json'}
         path = self.api_entry + path
         if '?' in path:
@@ -246,13 +286,14 @@ class WxBaseApi(object):
                             verify=WxBaseApi.VERIFY)
         return self._process_response(rsp)
 
-    def upload_media(self, mtype, file_path=None, file_content=None,
-                     url='media/upload', suffies=None):
+    def upload_media(self, mtype, file_path=None, file_content=None, url='media/upload',
+                     suffies=None):
+        """upload_media"""
         path = self.api_entry + url + '?access_token=' \
                + self.access_token + '&type=' + mtype
-        suffies = suffies or {'image': '.jpg', 'voice': '.mp3',
-                              'video': 'mp4', 'thumb': 'jpg'}
+        suffies = suffies or {'image': '.jpg', 'voice': '.mp3', 'video': 'mp4', 'thumb': 'jpg'}
         suffix = None
+        tmp_path = None
         if mtype in suffies:
             suffix = suffies[mtype]
         if file_path:
@@ -272,6 +313,7 @@ class WxBaseApi(object):
         return self._process_response(rsp)
 
     def download_media(self, media_id, to_path, url='media/get'):
+        """download_media"""
         rsp = requests.get(self.api_entry + url,
                            params={'media_id': media_id,
                                    'access_token': self.access_token},
@@ -285,6 +327,7 @@ class WxBaseApi(object):
             return None, APIError(rsp.status_code, 'http error')
 
     def _get_media_id(self, obj, resource, content_type):
+        """_get_media_id"""
         if not obj.get(resource + '_id'):
             rsp, err = None, None
             if obj.get(resource + '_content'):
@@ -294,10 +337,10 @@ class WxBaseApi(object):
                 if err:
                     return None
             elif obj.get(resource + '_url'):
-                rs = requests.get(obj.get(resource + '_url'))
+                req = requests.get(obj.get(resource + '_url'))
                 rsp, err = self.upload_media(
                     content_type,
-                    file_content=rs.content)
+                    file_content=req.content)
                 if err:
                     return None
             else:
@@ -307,7 +350,10 @@ class WxBaseApi(object):
 
 
 class WxApi(WxBaseApi):
+    """WxApi"""
+
     def get_access_token(self, url=None, **kwargs):
+        """get_access_token"""
         params = {'grant_type': 'client_credential', 'appid': self.appid,
                   'secret': self.appsecret}
         if kwargs:
@@ -317,12 +363,15 @@ class WxApi(WxBaseApi):
         return self._process_response(rsp)
 
     def user_info(self, user_id, lang='zh_CN'):
+        """user_info"""
         return self._get('user/info', {'openid': user_id, 'lang': lang})
 
     def followers(self, next_id=''):
+        """followers"""
         return self._get('user/get', {'next_openid': next_id})
 
     def send_message(self, to_user, msg_type, content):
+        """send_message"""
         func = {'text': self.send_text,
                 'image': self.send_image,
                 'voice': self.send_voice,
@@ -334,11 +383,13 @@ class WxApi(WxBaseApi):
         return None, None
 
     def send_text(self, to_user, content):
+        """send_text"""
         return self._post('message/custom/send',
                           {'touser': to_user, 'msgtype': 'text',
                            'text': {'content': content}})
 
     def send_image(self, to_user, media_id=None, media_url=None):
+        """send_image"""
         if media_id and media_id.startswith('http'):
             media_url = media_id
             media_id = None
@@ -350,6 +401,7 @@ class WxApi(WxBaseApi):
                            'image': {'media_id': mid}})
 
     def send_voice(self, to_user, media_id=None, media_url=None):
+        """send_voice"""
         if media_id and media_id.startswith('http'):
             media_url = media_id
             media_id = None
@@ -361,6 +413,7 @@ class WxApi(WxBaseApi):
                            'voice': {'media_id': mid}})
 
     def send_music(self, to_user, music):
+        """send_music"""
         music['thumb_media_id'] = self._get_media_id(music,
                                                      'thumb_media',
                                                      'image')
@@ -371,6 +424,7 @@ class WxApi(WxBaseApi):
                            'music': music})
 
     def send_video(self, to_user, video):
+        """send_video"""
         video['media_id'] = self._get_media_id(video, 'media', 'video')
         video['thumb_media_id'] = self._get_media_id(video,
                                                      'thumb_media', 'image')
@@ -381,6 +435,7 @@ class WxApi(WxBaseApi):
                            'video': video})
 
     def send_news(self, to_user, news):
+        """send_news"""
         if isinstance(news, dict):
             news = [news]
         return self._post('message/custom/send',
@@ -388,81 +443,101 @@ class WxApi(WxBaseApi):
                            'news': {'articles': news}})
 
     def send_template(self, to_user, template_id, url, data):
+        """send_template"""
         return self._post('message/template/send',
                           {'touser': to_user, 'template_id': template_id,
                            'url': url, 'data': data})
 
     def create_group(self, name):
+        """create_group"""
         return self._post('groups/create',
                           {'group': {'name': name}})
 
     def groups(self):
+        """groups"""
         return self._get('groups/get')
 
     def update_group(self, group_id, name):
+        """update_group"""
         return self._post('groups/update',
                           {'group': {'id': group_id, 'name': name}})
 
     def group_of_user(self, user_id):
+        """group_of_user"""
         return self._get('groups/getid', {'openid': user_id})
 
     def move_user_to_group(self, user_id, group_id):
+        """move_user_to_group"""
         return self._post('groups/members/update',
                           {'openid': user_id, 'to_groupid': group_id})
 
     def create_menu(self, menus):
+        """create_menu"""
         return self._post('menu/create', menus)
 
     def get_menu(self):
+        """get_menu"""
         return self._get('menu/get')
 
     def delete_menu(self):
+        """delete_menu"""
         return self._get('menu/delete')
 
     def create_tag(self, name):
+        """create_tag"""
         return self._post('tags/create',
                           {'tag': {"name": name}})
 
     def tags(self):
+        """tags"""
         return self._get('tags/get')
 
     def update_tag(self, tag_id, name):
+        """update_tag"""
         return self._post('tags/update',
                           {'tag': {'id': tag_id, 'name': name}})
 
     def delete_tag(self, tag_id):
+        """delete_tag"""
         return self._post('tags/delete',
                           {'tag': {'id': tag_id}})
 
     def tag_of_user(self, user_id):
+        """tag_of_user"""
         return self._post('tags/getidlist', {'openid': user_id})
 
     def batch_tagging(self, tag_id, users_list):
+        """batch_tagging"""
         return self._post('tags/members/batchtagging',
                           {'openid_list': users_list, 'tagid': tag_id})
 
     def batch_untagging(self, tag_id, users_list):
+        """batch_untagging"""
         return self._post('tags/members/batchuntagging',
                           {'openid_list': users_list, 'tagid': tag_id})
 
     def get_blacklist(self, user_id=""):
+        """get_blacklist"""
         return self._post('tags/members/getblacklist',
                           {'begin_openid': user_id})
 
     def batch_blacklist(self, users_list):
+        """batch_blacklist"""
         return self._post('tags/members/batchblacklist',
                           {'openid_list': users_list})
 
     def batch_unblacklist(self, users_list):
+        """batch_unblacklist"""
         return self._post('tags/members/batchunblacklist',
                           {'openid_list': users_list})
 
     def update_user_remark(self, openid, remark):
+        """update_user_remark"""
         return self._post('user/info/updateremark',
                           {'openid': openid, 'remark': remark})
 
-    def customservice_records(self, starttime, endtime, openid=None,
-                              pagesize=100, pageindex=1):
+    def customservice_records(self, starttime, endtime, openid=None, pagesize=100, pageindex=1):
+        """customservice_records"""
         return self._get('customservice/getrecord',
                          {'starttime': starttime,
                           'endtime': endtime,
