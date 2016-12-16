@@ -1,5 +1,9 @@
-# encoding=utf-8
-
+# -*- coding: utf-8 -*-
+'''
+关于Crypto.Cipher模块，ImportError: No module named 'Crypto'解决方案
+请到官方网站 https://www.dlitz.net/software/pycrypto/ 下载pycrypto。
+下载后，按照README中的“Installation”小节的提示进行pycrypto安装。
+'''
 import base64
 import string
 import random
@@ -36,11 +40,7 @@ WXBizMsgCrypt_EncodeBase64_Error = -40009
 WXBizMsgCrypt_DecodeBase64_Error = -40010
 WXBizMsgCrypt_GenReturnXml_Error = -40011
 
-"""
-关于Crypto.Cipher模块，ImportError: No module named 'Crypto'解决方案
-请到官方网站 https://www.dlitz.net/software/pycrypto/ 下载pycrypto。
-下载后，按照README中的“Installation”小节的提示进行pycrypto安装。
-"""
+
 
 
 class FormatException(Exception):
@@ -166,8 +166,7 @@ class Prpcrypt(object):
         @return: 加密得到的字符串
         """
         # 16位随机字符串添加到明文开头
-        text = self.get_random_str() + struct.pack(
-            "I", socket.htonl(len(text))) + text + appid
+        text = self.get_random_str() + struct.pack("I", socket.htonl(len(text))) + text + appid
         # 使用自定义的填充方式对明文进行补位填充
         pkcs7 = PKCS7Encoder()
         text = pkcs7.encode(text)

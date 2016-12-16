@@ -1,0 +1,5 @@
+pycrypto
+xmltodict
+requests
+redis
+pylint

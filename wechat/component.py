@@ -22,7 +22,7 @@ class WxComponentApplication(object):
 
         sign_ele = [self.token, timestamp, nonce]
         sign_ele.sort()
-        if (signature == sha1(''.join(sign_ele)).hexdigest()):
+        if signature == sha1(''.join(sign_ele)).hexdigest():
             return True, echostr
         else:
             return None
@@ -176,7 +176,8 @@ class WxComponentApi(object):
         """
         获取预授权码
         """
-        pre_auth_code_url = "component/api_create_preauthcode?component_access_token=%s" % component_access_token
+        pre_auth_code_url = "component/api_create_preauthcode?component_access_token=" \
+                            "%s" % component_access_token
         parameters = {
             'component_appid': self.component_appid
         }
@@ -187,8 +188,9 @@ class WxComponentApi(object):
         """
         获取第三方平台授权页地址
         """
-        authorization_page = "https://mp.weixin.qq.com/cgi-bin/componentloginpage?component_appid=%s&pre_auth_code=%s&redirect_uri=%s" % \
-                             (self.component_appid, pre_auth_code, redirect_uri)
+        authorization_page = "https://mp.weixin.qq.com/cgi-bin/componentloginpage?component_appid=" \
+                             "%s&pre_auth_code=%s&redirect_uri=%s" % (
+                                 self.component_appid, pre_auth_code, redirect_uri)
         return authorization_page
 
     def get_authorization_info(self, auth_code, component_access_token):
