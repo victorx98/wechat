@@ -249,13 +249,53 @@ class WxBaseApi(object):
         """access token"""
         return self.token_manager.get_token(self.get_access_token)
 
+    @property
+    def jsapi_ticket(self):
+        """jsapi_ticket"""
+        return self.token_manager.get_token(self.get_jsapi_ticket)
+
+    @property
+    def api_ticket(self):
+        """api_ticket"""
+        return self.token_manager.get_token(self.get_api_ticket)
+
+    def get_access_token(self, url=None, **kwargs):
+        """get_access_token"""
+        params = {'grant_type': 'client_credential', 'appid': self.appid,
+                  'secret': self.appsecret}
+        if kwargs:
+            params.update(kwargs)
+        rsp = requests.get(url or self.api_entry + 'token', params=params,
+                           verify=WxBaseApi.VERIFY)
+        return self._process_response(rsp)
+
+    def get_jsapi_ticket(self, url=None, **kwargs):
+        """get_jsapi_ticket"""
+        params = {'access_token': self.access_token, 'type': 'jsapi'}
+        if kwargs:
+            params.update(kwargs)
+        self.api_entry = 'https://api.weixin.qq.com/cgi-bin/ticket/'
+        rsp = requests.get(url or self.api_entry + 'getticket', params=params,
+                           verify=WxBaseApi.VERIFY)
+        return self._process_response(rsp)
+
+    def get_api_ticket(self, url=None, **kwargs):
+        """get_api_ticket"""
+        params = {'access_token': self.access_token, 'type': 'wx_card'}
+        if kwargs:
+            params.update(kwargs)
+        self.api_entry = 'https://api.weixin.qq.com/cgi-bin/ticket/'
+        rsp = requests.get(url or self.api_entry + 'getticket', params=params,
+                           verify=WxBaseApi.VERIFY)
+        return self._process_response(rsp)
+
     def _process_response(self, rsp):
         """process response"""
         if rsp.status_code != 200:
             return None, APIError(rsp.status_code, 'http error')
         try:
             content = rsp.json()
-        except:
+        except Exception:
             return None, APIError(99999, 'invalid rsp')
         if 'errcode' in content and content['errcode'] != 0:
             return None, APIError(content['errcode'], content['errmsg'])
@@ -351,16 +391,6 @@ class WxBaseApi(object):
 
 class WxApi(WxBaseApi):
     """WxApi"""
-
-    def get_access_token(self, url=None, **kwargs):
-        """get_access_token"""
-        params = {'grant_type': 'client_credential', 'appid': self.appid,
-                  'secret': self.appsecret}
-        if kwargs:
-            params.update(kwargs)
-        rsp = requests.get(url or self.api_entry + 'token', params=params,
-                           verify=WxBaseApi.VERIFY)
-        return self._process_response(rsp)
 
     def user_info(self, user_id, lang='zh_CN'):
         """user_info"""
