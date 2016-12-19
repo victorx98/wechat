@@ -24,3 +24,7 @@ UNSUPPORT_TXT = '暂不支持此类型消息'
 WELCOME_TXT = '欢迎重新回来！\n' \
               '我是测试圈公认懂的最多的人，人称『百晓生』。我这里每天提供一篇原创测试好文。' \
               '你每天还能问我一个问题，你觉得会难住我吗？把我装进口袋，总会有用处的 : )'
+# Redis
+REDIS_HOST = os.environ.get('REDIS_HOST', '182.92.178.14')
+REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
+REDIS_DB = os.environ.get('REDIS_DB', 0)

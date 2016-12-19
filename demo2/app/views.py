@@ -32,7 +32,10 @@ def wechat():
 wxAdmin = WxApi(
     config.APP_ID,
     config.APP_SECRET,
-    LocalTokenManager()
+    RedisTokenManager(
+        host=getattr(config, 'REDIS_HOST'),
+        port=getattr(config, 'REDIS_PORT'),
+        db=getattr(config, 'REDIS_DB', 0))
 )
 
 
@@ -42,10 +45,22 @@ def admin():
     return jsonify(menu)
 
 
+@APP.route('/admin/jsapitk')
+def jsapitk():
+    jsapitk = wxAdmin.jsapi_ticket
+    return jsonify(jsapitk)
+
+
+@APP.route('/admin/apitk')
+def apitk():
+    apitk = wxAdmin.api_ticket
+    return jsonify(apitk)
+
+
 @APP.route('/admin/token')
 def token():
     access_token = wxAdmin.access_token
-    return access_token
+    return jsonify(access_token)
 
 
 class WxComponentApp(WxComponentApplication):

@@ -247,17 +247,17 @@ class WxBaseApi(object):
     @property
     def access_token(self):
         """access token"""
-        return self.token_manager.get_token(self.get_access_token)
+        return self.token_manager.get_token(self.get_access_token, 'access_token')
 
     @property
     def jsapi_ticket(self):
         """jsapi_ticket"""
-        return self.token_manager.get_token(self.get_jsapi_ticket)
+        return self.token_manager.get_token(self.get_jsapi_ticket, 'jsapi_ticket')
 
     @property
     def api_ticket(self):
         """api_ticket"""
-        return self.token_manager.get_token(self.get_api_ticket)
+        return self.token_manager.get_token(self.get_api_ticket, 'api_ticket')
 
     def get_access_token(self, url=None, **kwargs):
         """get_access_token"""
@@ -271,6 +271,7 @@ class WxBaseApi(object):
 
     def get_jsapi_ticket(self, url=None, **kwargs):
         """get_jsapi_ticket"""
+        # print('self.access_token:',self.access_token)
         params = {'access_token': self.access_token, 'type': 'jsapi'}
         if kwargs:
             params.update(kwargs)
