@@ -7,32 +7,97 @@ import redis
 logger = logging.getLogger(__name__)
 
 
+class TokenManager(object):
+    """TokenManager"""
+
+
+def get_token(self, fn_get_token, token_type='access_token'):
+    """get_token"""
+    self.token_type = token_type
+    token = self.token
+    expires = self.expires
+
+    if not token and not expires:
+        for i in range(12):
+            sleep(5)
+            if self.token:
+                break
+    elif not token or expires and float(expires) < time():
+        self.expires = None
+        self.refresh_token(fn_get_token, token_type)
+    print('in-tm:', self.token)
+    return self.token
+
+
+def refresh_token(self, fn_get_token, token_type):
+    """refresh_token"""
+    token, err = fn_get_token()
+    if token and not err:
+        self.token_type = token_type
+        try:
+            self.token = token['access_token']
+        except KeyError:
+            self.token = token['ticket']
+        self.expires = time() + token['expires_in']
+    else:
+        self.token = None
+
+
 class LocalTokenManager(object):
     """LocalTokenManager"""
 
-    def __init__(self, postfix="", *args, **kwargs):
+    def __init__(self, postfix="", **kwargs):
         """init"""
-        pass
+        super(LocalTokenManager, self).__init__()
+        self.postfix = postfix
+        self.redis = redis.Redis(**kwargs)
+        self.token_type_name = "_".join(['token_type', self.postfix])
+        if not self.token_type:
+            self.token_type = 'access_token'
+        self.token_name = "_".join([self.token_type, self.postfix])
+        self.expires_name = "_".join([self.token_type, "expires", self.postfix])
+        if not self.expires:
+            self.expires = time()
+
+    @property
+    def token_type(self):
+        """get token type"""
+        token_type = self.redis.get(self.token_type_name)
+        token_type = str(token_type, "utf-8") if token_type and isinstance(
+            token_type, bytes) else token_type
+        return token_type
+
+    @token_type.setter
+    def token_type(self, value):
+        """set token type"""
+        self.redis.set(self.token_type_name, value)
 
     @property
     def token(self):
         """get token"""
-        pass
+        print(self.token_name)
+        token = self.redis.get(self.token_name)
+        return str(token, "utf-8") if token and isinstance(
+            token, bytes) else token
 
     @token.setter
-    def token(self, token):
+    def token(self, value):
         """set token"""
-        pass
+        self.token_name = "_".join([self.token_type, self.postfix])
+        self.redis.set(self.token_name, value)
 
     @property
     def expires(self):
         """get expires"""
-        pass
+        expires = self.redis.get(self.expires_name)
+        return expires
 
     @expires.setter
-    def expires(self, expires):
+    def expires(self, value):
         """set expires"""
-        pass
+        self.expires_name = "_".join([self.token_type, "expires", self.postfix])
+        self.redis.set(self.expires_name, value)
+
 
 
 class RedisTokenManager(object):
