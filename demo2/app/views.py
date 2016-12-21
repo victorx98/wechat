@@ -29,7 +29,7 @@ def wechat():
     return result
 
 
-wxAdmin = WxApi(
+wxapi = WxApi(
     config.APP_ID,
     config.APP_SECRET,
     LocalTokenManager(
@@ -41,27 +41,27 @@ wxAdmin = WxApi(
 
 @APP.route('/admin')
 def admin():
-    menu = wxAdmin.get_menu()
+    menu = wxapi.get_menu()
     return jsonify(menu)
 
 
 @APP.route('/admin/jsapitk')
 def jsapitk():
-    jsapitk = wxAdmin.jsapi_ticket
+    jsapitk = wxapi.jsapi_ticket
     print(jsapitk)
     return jsonify(jsapitk)
 
 
 @APP.route('/admin/apitk')
 def apitk():
-    apitk = wxAdmin.api_ticket
+    apitk = wxapi.api_ticket
     print(apitk)
     return jsonify(apitk)
 
 
 @APP.route('/admin/token')
 def token():
-    access_token = wxAdmin.access_token
+    access_token = wxapi.access_token
     print(access_token)
     return jsonify(access_token)
 
