@@ -374,8 +374,8 @@ class WxApi(WxBaseApi):
 
     def get_jsapi_ticket(self, url=None, **kwargs):
         """get_jsapi_ticket"""
-        # print('self.access_token:',self.access_token)
-        params = {'access_token': self.access_token, 'type': 'jsapi'}
+        __access_token = self.access_token
+        params = {'access_token': __access_token, 'type': 'jsapi'}
         if kwargs:
             params.update(kwargs)
         self.api_entry = 'https://api.weixin.qq.com/cgi-bin/ticket/'
@@ -385,14 +385,14 @@ class WxApi(WxBaseApi):
 
     def get_api_ticket(self, url=None, **kwargs):
         """get_api_ticket"""
-        params = {'access_token': self.access_token, 'type': 'wx_card'}
+        __access_token = self.access_token
+        params = {'access_token': __access_token, 'type': 'wx_card'}
         if kwargs:
             params.update(kwargs)
         self.api_entry = 'https://api.weixin.qq.com/cgi-bin/ticket/'
         rsp = requests.get(url or self.api_entry + 'getticket', params=params,
                            verify=WxBaseApi.VERIFY)
         return self._process_response(rsp)
-
 
     def user_info(self, user_id, lang='zh_CN'):
         """user_info"""

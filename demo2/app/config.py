@@ -16,15 +16,13 @@ HOST_IP = '127.0.0.1'
 HOST_PORT = 80
 
 # Wechat
-APP_ID = os.environ.get('WX_APP_ID', 'wxc6a2d04030e04a94')
-APP_SECRET = os.environ.get('WX_APP_SECRET', 'fd91aea8d2b7082ccf01dd0d6b0e1752')
-TOKEN = os.environ.get('WX_TOKEN', '884CD2D9')
+APP_ID = os.environ.get('WX_APP_ID', '')
+APP_SECRET = os.environ.get('WX_APP_SECRET', '')
+TOKEN = os.environ.get('WX_TOKEN', '')
 ENCODING_AES_KEY = os.environ.get('WX_AES_KEY', None)
 UNSUPPORT_TXT = '暂不支持此类型消息'
-WELCOME_TXT = '欢迎重新回来！\n' \
-              '我是测试圈公认懂的最多的人，人称『百晓生』。我这里每天提供一篇原创测试好文。' \
-              '你每天还能问我一个问题，你觉得会难住我吗？把我装进口袋，总会有用处的 : )'
+WELCOME_TXT = '欢迎重新回来！\n'
 # Redis
-REDIS_HOST = os.environ.get('REDIS_HOST', '182.92.178.14')
+REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
 REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
 REDIS_DB = os.environ.get('REDIS_DB', 0)
