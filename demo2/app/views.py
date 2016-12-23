@@ -49,8 +49,8 @@ def admin():
 @APP.route('/admin/jsapitk')
 def jsapitk():
     jsapitk = wxapi.jsapi_ticket
-    print(wxapi.access_token)
-    print(jsapitk)
+    # print(wxapi.access_token)
+    # print(jsapitk)
     return jsonify(jsapitk)
 
 
