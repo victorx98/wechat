@@ -2,7 +2,7 @@
 # Create your views here.
 
 from flask import request, jsonify
-import requests
+
 from demo2.app import APP
 from demo2.app import config
 from wechat.component import WxComponentApplication, WxComponentApi
@@ -40,29 +40,6 @@ wxapi = WxApi(
 )
 
 
-def get_jsapi_ticket(access_token):
-    """get_jsapi_ticket"""
-
-    params = {'access_token': access_token, 'type': 'jsapi'}
-    rsp = requests.get('https://api.weixin.qq.com/cgi-bin/ticket/getticket', params=params,
-                       verify=True)
-    print(rsp.url)
-    print('原始rsp:', rsp.text)
-    return rsp.json()
-
-
-def get_api_ticket(access_token):
-    """get_api_ticket"""
-    params = {'access_token': access_token, 'type': 'wx_card'}
-    print('params:', params)
-    rsp = requests.get('https://api.weixin.qq.com/cgi-bin/ticket/getticket', params=params,
-                       verify=True)
-    print(rsp.url)
-    print('原始rsp:', rsp.text)
-    return rsp.json()
-
-
-
 @APP.route('/admin')
 def admin():
     menu = wxapi.get_menu()
@@ -71,7 +48,7 @@ def admin():
 
 @APP.route('/admin/jsapitk')
 def jsapitk():
-    jsapitk = get_jsapi_ticket(wxapi.access_token)
+    jsapitk = wxapi.jsapi_ticket
     print(wxapi.access_token)
     print(jsapitk)
     return jsonify(jsapitk)
@@ -79,7 +56,7 @@ def jsapitk():
 
 @APP.route('/admin/apitk')
 def apitk():
-    apitk = get_api_ticket
+    apitk = wxapi.api_ticket
     print(wxapi.access_token)
     print(apitk)
     return jsonify(apitk)
