@@ -1,14 +1,14 @@
 # -*- coding: UTF-8 –*-
 # Create your views here.
 
-from flask import request, jsonify
+from flask import request, jsonify, render_template
 
 from demo2.app import APP
 from demo2.app import config
 from wechat.component import WxComponentApplication, WxComponentApi
 from wechat.official import WxApplication, WxApi, WxTextResponse
 from wechat.token_manager import RedisTokenManager, LocalTokenManager
-
+from wechat.crypt import Sign
 
 class WxApp(WxApplication):
     """把用户输入的文本原样返回。
@@ -51,7 +51,22 @@ def jsapitk():
     jsapitk = wxapi.jsapi_ticket
     print(wxapi.access_token)
     print(jsapitk)
-    return jsonify(jsapitk)
+    return render_template('index.html', signature={})
+
+
+@APP.route('/wechat/weui')
+def weui():
+    """The view for test weui"""
+
+    # 注意 URL 一定要动态获取，不能 hardcode
+    print('url:', request.url)
+    jsapitk = wxapi.jsapi_ticket
+    print(jsapitk)
+    sign = Sign(jsapitk[0]['ticket'], request.url)
+    print(sign.sign())
+
+    return render_template('index.html', signature=sign.sign())
+
 
 
 @APP.route('/admin/apitk')

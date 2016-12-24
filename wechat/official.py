@@ -8,7 +8,7 @@ import os
 import sys
 from datetime import datetime, timedelta
 import requests
-from .crypt import WXBizMsgCrypt, SHA1
+from .crypt import WXBizMsgCrypt, SHA1, Sign
 
 from .models import WxRequest, WxResponse
 from .models import WxMusic, WxArticle, WxImage, WxVoice, WxVideo, WxLink
@@ -56,7 +56,7 @@ class WxApplication(object):
         signature = params.get('signature', '')
         echostr = params.get('echostr', '')
 
-        if (signature == SHA1.get_signature(self.token, timestamp, nonce)):
+        if signature == SHA1.get_signature(self.token, timestamp, nonce):
             return True, echostr
         else:
             return None
@@ -239,6 +239,7 @@ class WxBaseApi(object):
     VERIFY = True
 
     def __init__(self, appid, appsecret, token_manager, api_entry=None):
+        """init"""
         self.appid = appid
         self.appsecret = appsecret
         self.token_manager = token_manager
@@ -247,17 +248,17 @@ class WxBaseApi(object):
     @property
     def access_token(self):
         """access token"""
-        return self.token_manager.get_token(self.get_access_token, 'access_token')
+        return self.token_manager.get_token(self.get_access_token)
 
     @property
     def jsapi_ticket(self):
         """jsapi_ticket"""
-        return self.token_manager.get_token(self.get_jsapi_ticket, 'jsapi_ticket')
+        return self.get_jsapi_ticket()
 
     @property
     def api_ticket(self):
         """api_ticket"""
-        return self.token_manager.get_token(self.get_api_ticket, 'api_ticket')
+        return self.get_api_ticket()
 
     def _process_response(self, rsp):
         """process response"""

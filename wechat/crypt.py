@@ -271,8 +271,8 @@ class WXBizMsgCrypt(object):
         else:
             (s_reply_msg, s_nonce, timestamp) = list(
                 map(str2bytes, (s_reply_msg, s_nonce, timestamp)))
-        pc = Prpcrypt(self.key)
-        ret, encrypt = pc.encrypt(s_reply_msg, self.m_s_corp_id)
+        prpcrypt = Prpcrypt(self.key)
+        ret, encrypt = prpcrypt.encrypt(s_reply_msg, self.m_s_corp_id)
         if ret != 0:
             return ret, None
         if timestamp is None:
@@ -306,3 +306,31 @@ class WXBizMsgCrypt(object):
         pc = Prpcrypt(self.key)
         ret, xml_content = pc.decrypt(encrypt, self.m_s_corp_id)
         return ret, xml_content
+
+
+class Sign(object):
+    def __init__(self, jsapi_ticket, url):
+        """init"""
+        self.ret = {
+            'nonceStr': self.__create_nonce_str(),
+            'jsapi_ticket': jsapi_ticket,
+            'timestamp': self.__create_timestamp(),
+            'url': url
+        }
+
+    @staticmethod
+    def __create_nonce_str():
+        """create nonce str"""
+        return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(15))
+
+    @staticmethod
+    def __create_timestamp():
+        """create timestamp"""
+        return int(time.time())
+
+    def sign(self):
+        """sign"""
+        string = '&'.join(['%s=%s' % (key.lower(), self.ret[key]) for key in sorted(self.ret)])
+        print(string)
+        self.ret['signature'] = hashlib.sha1(string.encode()).hexdigest()
+        return self.ret
