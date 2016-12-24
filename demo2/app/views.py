@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 –*-
 # Create your views here.
 
-from flask import request, jsonify
+from flask import request, jsonify, render_template
 
 from demo2.app import APP
 from demo2.app import config
@@ -49,9 +49,48 @@ def admin():
 @APP.route('/admin/jsapitk')
 def jsapitk():
     jsapitk = wxapi.jsapi_ticket
-    # print(wxapi.access_token)
-    # print(jsapitk)
-    return jsonify(jsapitk)
+    print(wxapi.access_token)
+    print(jsapitk)
+    return render_template('index.html')
+
+
+@APP.route('/wechat/weui')
+def weui():
+    """The view for test weui"""
+
+    import time
+    import random
+    import string
+    import hashlib
+
+    class Sign:
+        def __init__(self, jsapi_ticket, url):
+            self.ret = {
+                'nonceStr': self.__create_nonce_str(),
+                'jsapi_ticket': jsapi_ticket,
+                'timestamp': self.__create_timestamp(),
+                'url': url
+            }
+
+        def __create_nonce_str(self):
+            return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(15))
+
+        def __create_timestamp(self):
+            return int(time.time())
+
+        def sign(self):
+            string = '&'.join(['%s=%s' % (key.lower(), self.ret[key]) for key in sorted(self.ret)])
+            print(string)
+            self.ret['signature'] = hashlib.sha1(string.encode()).hexdigest()
+            return self.ret
+
+    # 注意 URL 一定要动态获取，不能 hardcode
+    jsapitk = wxapi.jsapi_ticket
+    sign = Sign(jsapitk[0]['ticket'], 'http://oryx.vicp.net/wechat/weui')
+    print(sign.sign())
+
+    return render_template('index.html', signature=sign.sign())
+
 
 
 @APP.route('/admin/apitk')

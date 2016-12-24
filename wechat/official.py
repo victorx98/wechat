@@ -239,6 +239,7 @@ class WxBaseApi(object):
     VERIFY = True
 
     def __init__(self, appid, appsecret, token_manager, api_entry=None):
+        """init"""
         self.appid = appid
         self.appsecret = appsecret
         self.token_manager = token_manager
@@ -246,18 +247,15 @@ class WxBaseApi(object):
 
     @property
     def access_token(self):
-        """access token"""
-        return self.token_manager.get_token(self.get_access_token, 'access_token')
+        return self.token_manager.get_token(self.get_access_token)
 
     @property
     def jsapi_ticket(self):
-        """jsapi_ticket"""
-        return self.token_manager.get_token(self.get_jsapi_ticket, 'jsapi_ticket')
+        return self.get_jsapi_ticket()
 
     @property
     def api_ticket(self):
-        """api_ticket"""
-        return self.token_manager.get_token(self.get_api_ticket, 'api_ticket')
+        return self.get_api_ticket()
 
     def _process_response(self, rsp):
         """process response"""
@@ -279,6 +277,7 @@ class WxBaseApi(object):
         params['access_token'] = self.access_token
         rsp = requests.get(self.api_entry + path, params=params,
                            verify=WxBaseApi.VERIFY)
+        print(rsp.url)
         return self._process_response(rsp)
 
     @retry_token
@@ -363,7 +362,6 @@ class WxApi(WxBaseApi):
     """WxApi"""
 
     def get_access_token(self, url=None, **kwargs):
-        """get_access_token"""
         params = {'grant_type': 'client_credential', 'appid': self.appid,
                   'secret': self.appsecret}
         if kwargs:
@@ -372,28 +370,25 @@ class WxApi(WxBaseApi):
                            verify=WxBaseApi.VERIFY)
         return self._process_response(rsp)
 
-    def get_jsapi_ticket(self, url=None, **kwargs):
+    @retry_token
+    def get_jsapi_ticket(self):
         """get_jsapi_ticket"""
-        params = {'type': 'jsapi'}
-        if kwargs:
-            params.update(kwargs)
-        self.api_entry = 'https://api.weixin.qq.com/cgi-bin/ticket/'
-        rsp = requests.get(url or self.api_entry + 'getticket', params=params,
+        params = {'access_token': self.access_token, 'type': 'jsapi'}
+        print('params:', params)
+        rsp = requests.get('https://api.weixin.qq.com/cgi-bin/ticket/getticket', params=params,
                            verify=WxBaseApi.VERIFY)
+        print(rsp.url)
+        print('原始rsp:', rsp.text)
         return self._process_response(rsp)
 
-    def get_api_ticket(self, url=None, **kwargs):
+    @retry_token
+    def get_api_ticket(self):
         """get_api_ticket"""
-        params = {'type': 'wx_card'}
-        if kwargs:
-            params.update(kwargs)
-        self.api_entry = 'https://api.weixin.qq.com/cgi-bin/ticket/'
-        print('url:', url or self.api_entry)
+        params = {'access_token': self.access_token, 'type': 'wx_card'}
         print('params:', params)
-        print('kwargs:', kwargs)
-        rsp = requests.get(url or self.api_entry + 'getticket', params=params,
+        rsp = requests.get('https://api.weixin.qq.com/cgi-bin/ticket/getticket', params=params,
                            verify=WxBaseApi.VERIFY)
-        print('请求url:', rsp.url)
+        print(rsp.url)
         print('原始rsp:', rsp.text)
         return self._process_response(rsp)
 
