@@ -10,114 +10,56 @@ logger = logging.getLogger(__name__)
 class TokenManager(object):
     """TokenManager"""
 
-    def get_token(self, fn_get_token, token_type):
+    def get_token(self, fn_get_access_token):
         """get_token"""
-        token = eval('self.' + token_type)
-        expires = eval('self.' + token_type + '_expires')
-        token = None if token == 'None' else token
-        expires = time() - 60 if expires == 'None' or expires is None else float(expires)
+        token = self.token
+        expires = self.expires
         if not token and not expires:
-            for i in range(3):
-                sleep(3)
-                if eval('self.' + token_type):
+            for i in range(12):
+                sleep(5)
+                if self.token:
                     break
-        elif not token or expires and expires < time():
-            exec("self." + token_type + "_expires = None")
-            self.__refresh_token(fn_get_token, token_type)
-        return eval('self.' + token_type)
+        elif not token or expires and float(expires) < time():
+            self.expires = None
+            self.refresh_token(fn_get_access_token)
+        return self.token
 
-    def __refresh_token(self, fn_get_token, token_type):
+    def refresh_token(self, fn_get_access_token):
         """refresh_token"""
-        token, err = fn_get_token()
+        token, err = fn_get_access_token()
         if token and not err:
-            try:
-                exec("self." + token_type + " = token['access_token']")
-            except KeyError:
-                exec("self." + token_type + " = token['ticket']")
-            exec("self." + token_type + "_expires = time() + token['expires_in']")
+            self.token = token['access_token']
+            self.expires = time() + token['expires_in']
         else:
-            exec("self." + token_type + " = None")
+            self.token = None
 
 
 class LocalTokenManager(TokenManager):
     """LocalTokenManager"""
 
-    def __init__(self, postfix=""):
-        """init"""
-        self.postfix = postfix
-        self.localdb = {}
+    def __init__(self):
+        self._access_token = None
+        self._expires = time()
 
-        self.__access_token_name = "_".join(['access_token', self.postfix])
-        self.__access_token_expires_name = "_".join(['access_token', 'expires', self.postfix])
-
-        self.__jsapi_ticket_name = "_".join(['jsapi_ticket', self.postfix])
-        self.__jsapi_ticket_expires_name = "_".join(['jsapi_ticket', 'expires', self.postfix])
-
-        self.__api_ticket_name = "_".join(['api_ticket', self.postfix])
-        self.__api_ticket_expires_name = "_".join(['api_ticket', 'expires', self.postfix])
-
-    # access_token
     @property
-    def access_token(self):
+    def token(self):
         """get token"""
-        return self.localdb.get(self.__access_token_name)
+        return self._access_token
 
-    @access_token.setter
-    def access_token(self, access_token):
+    @token.setter
+    def token(self, token):
         """set token"""
-        self.localdb.update({self.__access_token_name: access_token})
+        self._access_token = token
 
     @property
-    def access_token_expires(self):
+    def expires(self):
         """get expires"""
-        return self.localdb.get(self.__access_token_expires_name)
+        return self._expires
 
-    @access_token_expires.setter
-    def access_token_expires(self, access_token_expires):
+    @expires.setter
+    def expires(self, expires):
         """set expires"""
-        self.localdb.update({self.__access_token_expires_name: access_token_expires})
-
-    # jsapi_ticket
-    @property
-    def jsapi_ticket(self):
-        """get jsapi_ticket"""
-        return self.localdb.get(self.__jsapi_ticket_name)
-
-    @jsapi_ticket.setter
-    def jsapi_ticket(self, jsapi_ticket):
-        """set jsapi_ticket"""
-        self.localdb.update({self.__jsapi_ticket_name: jsapi_ticket})
-
-    @property
-    def jsapi_ticket_expires(self):
-        """get jsapi_ticket_expires"""
-        return self.localdb.get(self.__jsapi_ticket_expires_name)
-
-    @jsapi_ticket_expires.setter
-    def jsapi_ticket_expires(self, jsapi_ticket_expires):
-        """set jsapi_ticket_expires"""
-        self.localdb.update({self.__jsapi_ticket_expires_name: jsapi_ticket_expires})
-
-    # api_ticket
-    @property
-    def api_ticket(self):
-        """get api_ticket"""
-        return self.localdb.get(self.__api_ticket_name)
-
-    @api_ticket.setter
-    def api_ticket(self, api_ticket):
-        """set api_ticket"""
-        self.localdb.update({self.__api_ticket_name: api_ticket})
-
-    @property
-    def api_ticket_expires(self):
-        """get api_ticket_expires"""
-        return self.localdb.get(self.__api_ticket_expires_name)
-
-    @api_ticket_expires.setter
-    def api_ticket_expires(self, api_ticket_expires):
-        """set api_ticket_expires"""
-        self.localdb.update({self.__api_ticket_expires_name: api_ticket_expires})
+        self._expires = expires
 
 
 class RedisTokenManager(TokenManager):
@@ -125,83 +67,31 @@ class RedisTokenManager(TokenManager):
 
     def __init__(self, postfix="", **kwargs):
         """init"""
-        self.postfix = postfix
+        self.token_name = "_".join(["access_token", postfix])
+        self.expires_name = "_".join(["access_token_expires", postfix])
         self.redis = redis.Redis(**kwargs)
+        if not self.expires:
+            self.expires = time()
 
-        self.__access_token_name = "_".join(['access_token', self.postfix])
-        self.__access_token_expires_name = "_".join(['access_token', 'expires', self.postfix])
-
-        self.__jsapi_ticket_name = "_".join(['jsapi_ticket', self.postfix])
-        self.__jsapi_ticket_expires_name = "_".join(['jsapi_ticket', 'expires', self.postfix])
-
-        self.__api_ticket_name = "_".join(['api_ticket', self.postfix])
-        self.__api_ticket_expires_name = "_".join(['api_ticket', 'expires', self.postfix])
-
-    # access_token
     @property
-    def access_token(self):
+    def token(self):
         """get token"""
-        token = self.redis.get(self.__access_token_name)
-        return token.decode() if token and isinstance(token, bytes) else token
+        token = self.redis.get(self.token_name)
+        return str(token, "utf-8") if token and isinstance(
+            token, bytes) else token
 
-    @access_token.setter
-    def access_token(self, access_token):
+    @token.setter
+    def token(self, token):
         """set token"""
-        self.redis.set(self.__access_token_name, access_token)
+        self.redis.set(self.token_name, token)
 
     @property
-    def access_token_expires(self):
+    def expires(self):
         """get expires"""
-        expires = self.redis.get(self.__access_token_expires_name)
-        return expires.decode() if expires and isinstance(expires, bytes) else expires
+        expires = self.redis.get(self.expires_name)
+        return expires
 
-    @access_token_expires.setter
-    def access_token_expires(self, access_token_expires):
+    @expires.setter
+    def expires(self, expires):
         """set expires"""
-        self.redis.set(self.__access_token_expires_name, access_token_expires)
-
-    # jsapi_ticket
-    @property
-    def jsapi_ticket(self):
-        """get jsapi_ticket"""
-        token = self.redis.get(self.__jsapi_ticket_name)
-        return token.decode() if token and isinstance(token, bytes) else token
-
-    @jsapi_ticket.setter
-    def jsapi_ticket(self, jsapi_ticket):
-        """set jsapi_ticket"""
-        self.redis.set(self.__jsapi_ticket_name, jsapi_ticket)
-
-    @property
-    def jsapi_ticket_expires(self):
-        """get jsapi_ticket_expires"""
-        expires = self.redis.get(self.__jsapi_ticket_expires_name)
-        return expires.decode() if expires and isinstance(expires, bytes) else expires
-
-    @jsapi_ticket_expires.setter
-    def jsapi_ticket_expires(self, jsapi_ticket_expires):
-        """set jsapi_ticket_expires"""
-        self.redis.set(self.__jsapi_ticket_expires_name, jsapi_ticket_expires)
-
-    # api_ticket
-    @property
-    def api_ticket(self):
-        """get api_ticket"""
-        token = self.redis.get(self.__api_ticket_name)
-        return token.decode() if token and isinstance(token, bytes) else token
-
-    @api_ticket.setter
-    def api_ticket(self, api_ticket):
-        """set api_ticket"""
-        self.redis.set(self.__api_ticket_name, api_ticket)
-
-    @property
-    def api_ticket_expires(self):
-        """get api_ticket_expires"""
-        expires = self.redis.get(self.__api_ticket_expires_name)
-        return expires.decode() if expires and isinstance(expires, bytes) else expires
-
-    @api_ticket_expires.setter
-    def api_ticket_expires(self, api_ticket_expires):
-        """set api_ticket_expires"""
-        self.redis.set(self.__api_ticket_expires_name, api_ticket_expires)
+        self.redis.set(self.expires_name, expires)
