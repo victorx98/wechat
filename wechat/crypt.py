@@ -331,6 +331,5 @@ class Sign(object):
     def sign(self):
         """sign"""
         string = '&'.join(['%s=%s' % (key.lower(), self.ret[key]) for key in sorted(self.ret)])
-        print(string)
         self.ret['signature'] = hashlib.sha1(string.encode()).hexdigest()
         return self.ret

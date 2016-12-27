@@ -6,6 +6,7 @@ import tempfile
 import shutil
 import os
 import sys
+from time import time
 from datetime import datetime, timedelta
 import requests
 from .crypt import WXBizMsgCrypt, SHA1, Sign
@@ -253,7 +254,14 @@ class WxBaseApi(object):
     @property
     def jsapi_ticket(self):
         """jsapi_ticket"""
-        return self.get_jsapi_ticket()
+        _ticket, _expires = (None, None)
+        ticket, err = self.get_jsapi_ticket()
+        if ticket and not err:
+            _ticket = ticket['ticket']
+            _expires = time() + ticket['expires_in']
+        else:
+            self.ticket = None
+        return _ticket, _expires
 
     @property
     def api_ticket(self):
