@@ -266,7 +266,14 @@ class WxBaseApi(object):
     @property
     def api_ticket(self):
         """api_ticket"""
-        return self.get_api_ticket()
+        _ticket, _expires = (None, None)
+        ticket, err = self.get_api_ticket()
+        if ticket and not err:
+            _ticket = ticket['ticket']
+            _expires = time() + ticket['expires_in']
+        else:
+            self.ticket = None
+        return _ticket, _expires
 
     def _process_response(self, rsp):
         """process response"""
