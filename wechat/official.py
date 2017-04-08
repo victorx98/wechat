@@ -410,6 +410,11 @@ class WxApi(WxBaseApi):
                            verify=WxBaseApi.VERIFY)
         return self._process_response(rsp)
 
+    def get_qrcode_screen(self, ticket):
+        """get_qrcode_screen"""
+        params = {'ticket': ticket}
+        return self._get('showqrcode', params)
+
     def user_info(self, user_id, lang='zh_CN'):
         """user_info"""
         return self._get('user/info', {'openid': user_id, 'lang': lang})
@@ -500,6 +505,11 @@ class WxApi(WxBaseApi):
         """create_group"""
         return self._post('groups/create',
                           {'group': {'name': name}})
+
+    def create_qrcode(self, expires_in, scene_id):
+        """create_qrcode"""
+        return self._post('qrcode/create',{"expire_seconds":expires_in,
+                            "action_name":"QR_SCENE","action_info":{"scene":{"scene_id":scene_id}}})
 
     def groups(self):
         """groups"""
