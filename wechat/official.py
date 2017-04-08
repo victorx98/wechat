@@ -410,11 +410,6 @@ class WxApi(WxBaseApi):
                            verify=WxBaseApi.VERIFY)
         return self._process_response(rsp)
 
-    def get_qrcode_screen(self, ticket):
-        """get_qrcode_screen"""
-        params = {'ticket': ticket}
-        return self._get('showqrcode', params)
-
     def user_info(self, user_id, lang='zh_CN'):
         """user_info"""
         return self._get('user/info', {'openid': user_id, 'lang': lang})
